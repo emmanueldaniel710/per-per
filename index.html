@@ -3,11 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes, viewport-fit=cover">
-    <title>Connectly · Private P2P Chat + Images</title>
-    <!-- Google Fonts & Font Awesome -->
+    <title>Connectly · Ultra‑Reliable P2P Chat</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-    <!-- PeerJS -->
     <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
     <style>
         * {
@@ -16,7 +14,6 @@
             box-sizing: border-box;
         }
 
-        /* Light / Dark mode variables */
         :root {
             --bg-gradient-start: #0a0f1e;
             --bg-gradient-end: #03060c;
@@ -35,8 +32,6 @@
             --profile-bg: rgba(0, 0, 0, 0.35);
             --scrollbar-track: #121e2c;
             --scrollbar-thumb: #2f6bb0;
-            --status-online: #1f8b4c;
-            --accent-glow: rgba(0, 120, 255, 0.3);
         }
 
         body.light {
@@ -57,7 +52,6 @@
             --profile-bg: rgba(0, 0, 0, 0.05);
             --scrollbar-track: #cbd5e1;
             --scrollbar-thumb: #64748b;
-            --status-online: #10b981;
         }
 
         body {
@@ -78,7 +72,6 @@
             border-radius: 2rem;
             border: 1px solid var(--card-border);
             box-shadow: 0 25px 45px -12px rgba(0, 0, 0, 0.4);
-            transition: background 0.2s;
         }
 
         .app-container {
@@ -87,15 +80,9 @@
             min-height: 600px;
         }
 
-        .panel {
-            transition: opacity 0.25s ease;
-        }
+        .panel { transition: opacity 0.25s ease; }
+        .hidden-panel { display: none; }
 
-        .hidden-panel {
-            display: none;
-        }
-
-        /* Buttons & inputs */
         .btn-primary {
             background: var(--btn-primary);
             border: none;
@@ -180,7 +167,6 @@
             width: 42px;
             height: 42px;
             border-radius: 42px;
-            background: #2f6bb0;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -211,7 +197,6 @@
         .chat-footer { display: flex; gap: 0.5rem; margin-top: 0.8rem; align-items: center; flex-wrap: wrap; }
         .chat-footer .input-field { flex: 1; min-width: 120px; }
         
-        /* Responsive adjustments */
         @media (max-width: 700px) {
             body { padding: 0.5rem; }
             .app-container { padding: 1rem !important; }
@@ -222,18 +207,12 @@
             .theme-toggle { top: 10px; right: 10px; padding: 0.3rem 0.7rem; font-size: 0.8rem; }
         }
         @media (max-width: 550px) {
-            .profile-name-card .avatar-placeholder { width: 36px; height: 36px; font-size: 1rem; }
+            .avatar-placeholder { width: 36px; height: 36px; font-size: 1rem; }
             .profile-name-card { flex-direction: column; align-items: stretch !important; }
-            .profile-name-card > div:first-child { justify-content: space-between; }
-            .chat-header-profiles { flex-direction: column; align-items: stretch; }
-            .room-info { text-align: left; margin-top: 0.5rem; }
             .chat-footer button { padding: 0.5rem 0.8rem; }
             .message-bubble { max-width: 95%; }
         }
         @media (max-width: 450px) {
-            .actions-grid .action-card { min-width: 100%; }
-            .join-group { flex-direction: column; }
-            .join-group .btn-secondary { width: 100%; }
             .chat-footer { flex-wrap: wrap; }
             .chat-footer .input-field { min-width: 100%; order: -1; margin-bottom: 0.3rem; }
         }
@@ -246,18 +225,21 @@
             cursor: pointer;
             padding: 0;
             border-radius: 50%;
-            box-shadow: none;
         }
-        .color-picker-clean::-webkit-color-swatch-wrapper {
-            padding: 0;
-        }
-        .color-picker-clean::-webkit-color-swatch {
-            border: none;
-            border-radius: 50%;
-        }
+        .color-picker-clean::-webkit-color-swatch-wrapper { padding: 0; }
+        .color-picker-clean::-webkit-color-swatch { border: none; border-radius: 50%; }
         ::-webkit-scrollbar { width: 4px; }
         ::-webkit-scrollbar-track { background: var(--scrollbar-track); border-radius: 10px; }
         ::-webkit-scrollbar-thumb { background: var(--scrollbar-thumb); border-radius: 10px; }
+        .connection-badge {
+            font-size: 0.7rem;
+            background: rgba(0,0,0,0.4);
+            border-radius: 20px;
+            padding: 2px 8px;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+        }
     </style>
 </head>
 <body>
@@ -274,7 +256,6 @@
             <p style="color: var(--text-secondary); font-size: 0.85rem;">Private 1-on-1 · No signup · Share images</p>
         </div>
 
-        <!-- Profile: only name needed, clean accent picker without border -->
         <div class="profile-name-card" style="margin-bottom: 1.5rem;">
             <div style="display: flex; align-items: center; gap: 0.8rem; flex-wrap: wrap; justify-content: space-between;">
                 <div style="display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap;">
@@ -309,7 +290,6 @@
     <!-- CHAT SCREEN -->
     <div id="chatScreen" class="panel hidden-panel">
         <div style="display: flex; flex-direction: column; gap: 1rem;">
-            <!-- top bar: profiles + room info -->
             <div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 0.8rem;">
                 <div style="display: flex; gap: 0.8rem; flex-wrap: wrap;">
                     <div class="profile-name-card" style="display: flex; gap: 0.6rem; align-items: center;">
@@ -325,7 +305,7 @@
                         <div>
                             <div style="font-size: 0.65rem;">Partner</div>
                             <div id="remoteNameDisplay" style="font-weight: 600; font-size: 0.9rem;">Waiting...</div>
-                            <span id="remoteStatusIcon" style="font-size: 0.65rem;"><i class="fas fa-spinner fa-pulse"></i> connecting</span>
+                            <span id="remoteStatusIcon" class="connection-badge"><i class="fas fa-spinner fa-pulse"></i> connecting</span>
                         </div>
                     </div>
                 </div>
@@ -335,13 +315,11 @@
                 </div>
             </div>
 
-            <!-- chat messages area -->
             <div class="glass-card" style="padding: 0.8rem; background: var(--profile-bg);">
                 <div id="chatMessagesContainer" class="chat-messages">
                     <div style="text-align: center; color: var(--text-secondary); padding: 1.5rem; font-size: 0.85rem;"><i class="fas fa-comment-dots"></i> No messages yet</div>
                 </div>
 
-                <!-- Input + image button + send -->
                 <div class="chat-footer">
                     <button id="imageUploadBtn" class="btn-secondary" style="border-radius: 2rem; padding: 0.6rem 0.9rem;" title="Send Image"><i class="fas fa-image"></i></button>
                     <input type="text" id="messageInput" class="input-field" placeholder="Type a message...">
@@ -355,13 +333,41 @@
 </div>
 
 <script>
+    // ---------- ADVANCED ICE CONFIGURATION (MULTIPLE TURN FALLBACK) ----------
+    const ICE_CONFIG = {
+        iceServers: [
+            { urls: 'stun:stun.l.google.com:19302' },
+            { urls: 'stun:stun1.l.google.com:19302' },
+            { urls: 'stun:stun2.l.google.com:19302' },
+            { urls: 'stun:stun3.l.google.com:19302' },
+            { urls: 'stun:stun4.l.google.com:19302' },
+            { urls: 'stun:stun.ekiga.net' },
+            { urls: 'stun:stun.ideasip.com' },
+            { urls: 'stun:stun.voipgate.com' },
+            // Free TURN servers (multiple for redundancy)
+            { urls: 'turn:openrelay.metered.ca:80', username: 'openrelayproject', credential: 'openrelayproject' },
+            { urls: 'turn:openrelay.metered.ca:443', username: 'openrelayproject', credential: 'openrelayproject' },
+            { urls: 'turn:openrelay.metered.ca:443?transport=tcp', username: 'openrelayproject', credential: 'openrelayproject' },
+            { urls: 'turn:turn.anyfirewall.com:443?transport=tcp', username: 'webrtc', credential: 'webrtc' },
+            { urls: 'turn:turn.anyfirewall.com:80?transport=udp', username: 'webrtc', credential: 'webrtc' }
+        ],
+        sdpSemantics: 'unified-plan',  // Improves Safari / iOS compatibility
+        iceCandidatePoolSize: 10
+    };
+
     // ---------- GLOBALS ----------
     let currentPeer = null, dataConnection = null;
     let isHost = false, activeRoomCode = null, isConnected = false;
     let remoteProfile = { name: "Stranger", color: "#4c5f82", initial: "?" };
     let myProfile = { name: "", color: "#2a5280", initial: "?" };
     let typingTimeout = null, isTyping = false;
-    
+    let heartbeatInterval = null;
+    let reconnectAttempts = 0;
+    let manualDisconnect = false;
+    let reconnecting = false;
+    let lastPingResponse = Date.now();
+    let pingTimeout = null;
+
     // DOM elements
     const connectionScreen = document.getElementById('connectionScreen');
     const chatScreen = document.getElementById('chatScreen');
@@ -425,7 +431,7 @@
         }
         localStorage.setItem('connectly_profile_name', myProfile.name);
         localStorage.setItem('connectly_profile_color', myProfile.color);
-        if (dataConnection && dataConnection.open) sendProfileToPeer();
+        if (dataConnection && dataConnection.open && isConnected) sendProfileToPeer();
     }
 
     function loadStoredProfile() {
@@ -439,7 +445,7 @@
     }
 
     function sendProfileToPeer() {
-        if (dataConnection && dataConnection.open) {
+        if (dataConnection && dataConnection.open && isConnected) {
             dataConnection.send(JSON.stringify({
                 type: 'profile',
                 data: { name: myProfile.name, color: myProfile.color, initial: myProfile.initial }
@@ -470,7 +476,7 @@
             img.loading = 'lazy';
             img.onclick = () => window.open(imageUrl, '_blank');
             msgDiv.appendChild(img);
-        } else {
+        } else if (content) {
             const textSpan = document.createElement('div');
             textSpan.textContent = content;
             msgDiv.appendChild(textSpan);
@@ -498,6 +504,101 @@
         }
     }
 
+    // Heartbeat with timeout detection
+    function startHeartbeat() {
+        if (heartbeatInterval) clearInterval(heartbeatInterval);
+        lastPingResponse = Date.now();
+        heartbeatInterval = setInterval(() => {
+            if (dataConnection && dataConnection.open && isConnected) {
+                if (Date.now() - lastPingResponse > 35000) {
+                    appendSystemMessage("Heartbeat timeout - connection dead.", true);
+                    if (dataConnection) dataConnection.close();
+                    return;
+                }
+                try {
+                    dataConnection.send(JSON.stringify({ type: 'ping', ts: Date.now() }));
+                } catch(e) { /* ignore */ }
+            }
+        }, 20000);
+        // Check for ping response every 5 seconds
+        if (pingTimeout) clearInterval(pingTimeout);
+        pingTimeout = setInterval(() => {
+            if (isConnected && dataConnection && dataConnection.open && (Date.now() - lastPingResponse > 30000)) {
+                appendSystemMessage("No response from peer - reconnecting...", true);
+                if (dataConnection) dataConnection.close();
+            }
+        }, 5000);
+    }
+
+    function stopHeartbeat() {
+        if (heartbeatInterval) clearInterval(heartbeatInterval);
+        if (pingTimeout) clearInterval(pingTimeout);
+        heartbeatInterval = null;
+        pingTimeout = null;
+    }
+
+    // Exponential backoff reconnect
+    async function attemptReconnect() {
+        if (manualDisconnect || reconnecting || !activeRoomCode) return;
+        if (reconnectAttempts >= 6) {
+            appendSystemMessage("Auto-reconnect failed after 6 attempts. Please leave and create/join again.", true);
+            return;
+        }
+        reconnecting = true;
+        const delay = Math.min(2000 * Math.pow(1.5, reconnectAttempts), 30000);
+        appendSystemMessage(`Connection lost. Reconnecting in ${Math.round(delay/1000)}s (attempt ${reconnectAttempts+1}/6)...`, false);
+        await new Promise(r => setTimeout(r, delay));
+        reconnectAttempts++;
+        if (isHost) {
+            await recreateHostRoom();
+        } else {
+            await rejoinAsClient();
+        }
+        reconnecting = false;
+    }
+
+    async function recreateHostRoom() {
+        if (currentPeer) {
+            try { currentPeer.destroy(); } catch(e) {}
+            currentPeer = null;
+        }
+        const peer = new Peer(activeRoomCode, ICE_CONFIG);
+        currentPeer = peer;
+        peer.on('open', () => {
+            appendSystemMessage("Host recreated, waiting for partner to reconnect...");
+        });
+        peer.on('connection', (conn) => {
+            if (dataConnection && dataConnection.open) { conn.close(); return; }
+            appendSystemMessage("🔗 Partner reconnected!");
+            setupDataChannel(conn);
+            reconnectAttempts = 0;
+        });
+        peer.on('error', (err) => {
+            if (err.type !== 'peer-unavailable') appendSystemMessage(`Host error: ${err.message}`, true);
+            if (!manualDisconnect && !reconnecting) attemptReconnect();
+        });
+    }
+
+    async function rejoinAsClient() {
+        if (currentPeer) {
+            try { currentPeer.destroy(); } catch(e) {}
+            currentPeer = null;
+        }
+        const randomId = `user_${Date.now()}_${Math.floor(Math.random()*100000)}`;
+        const peer = new Peer(randomId, ICE_CONFIG);
+        currentPeer = peer;
+        peer.on('open', () => {
+            const conn = peer.connect(activeRoomCode, { reliable: true });
+            if (!conn) return;
+            setupDataChannel(conn);
+            appendSystemMessage(`Attempting to rejoin room ${activeRoomCode}...`);
+            conn.on('error', () => { /* handled by close */ });
+        });
+        peer.on('error', (err) => {
+            if (!manualDisconnect && !reconnecting) attemptReconnect();
+        });
+    }
+
     function compressAndSendImage(file) {
         if (!file.type.startsWith('image/')) {
             appendSystemMessage("Only images allowed (JPEG, PNG, GIF, WEBP)", true);
@@ -520,7 +621,7 @@
                 const ctx = canvas.getContext('2d');
                 ctx.drawImage(img, 0, 0, width, height);
                 const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.7);
-                if (dataConnection && dataConnection.open) {
+                if (dataConnection && dataConnection.open && isConnected) {
                     dataConnection.send(JSON.stringify({
                         type: 'image',
                         data: { url: compressedDataUrl, name: myProfile.name, color: myProfile.color }
@@ -542,23 +643,29 @@
     });
 
     function sendChatMessage(text) {
-        if (!dataConnection || !dataConnection.open) { appendSystemMessage("Not connected", true); return; }
+        if (!dataConnection || !dataConnection.open || !isConnected) { appendSystemMessage("Not connected", true); return; }
         const msgObj = { type: 'chat', data: { text: text, name: myProfile.name, color: myProfile.color, timestamp: Date.now() } };
         dataConnection.send(JSON.stringify(msgObj));
         appendMessageToUI(myProfile.name, text, true, false, null, myProfile.color);
     }
 
     function sendTyping(flag) {
-        if (dataConnection?.open) dataConnection.send(JSON.stringify({ type: 'typing', data: { isTyping: flag } }));
+        if (dataConnection?.open && isConnected) dataConnection.send(JSON.stringify({ type: 'typing', data: { isTyping: flag } }));
     }
 
     function setupDataChannel(conn) {
+        if (dataConnection) {
+            try { dataConnection.close(); } catch(e) {}
+        }
         dataConnection = conn;
         conn.on('open', () => {
             isConnected = true;
+            reconnectAttempts = 0;
+            lastPingResponse = Date.now();
             appendSystemMessage("🔒 Secure channel open! You can send images.");
             remoteStatusIcon.innerHTML = '<i class="fas fa-check-circle"></i> Connected';
             sendProfileToPeer();
+            startHeartbeat();
         });
         conn.on('data', (raw) => {
             try {
@@ -575,19 +682,41 @@
                     } else typingIndicatorArea.innerHTML = '';
                 } else if (msg.type === 'image') {
                     appendMessageToUI(msg.data.name, null, false, true, msg.data.url, msg.data.color);
+                } else if (msg.type === 'ping') {
+                    if (conn.open) conn.send(JSON.stringify({ type: 'pong' }));
+                } else if (msg.type === 'pong') {
+                    lastPingResponse = Date.now();
                 }
             } catch(e) { console.warn(e); }
         });
-        conn.on('close', () => resetToConnectionView("Partner disconnected."));
-        conn.on('error', () => resetToConnectionView("Connection lost."));
+        conn.on('close', () => {
+            const wasConnected = isConnected;
+            isConnected = false;
+            stopHeartbeat();
+            if (!manualDisconnect && wasConnected) {
+                appendSystemMessage("⚠️ Connection lost. Attempting to reconnect...", true);
+                if (!reconnecting) attemptReconnect();
+            } else if (manualDisconnect) {
+                resetToConnectionView("You left the room.");
+            }
+        });
+        conn.on('error', (err) => {
+            if (!manualDisconnect && isConnected) {
+                appendSystemMessage(`Connection error: ${err.message}`, true);
+                if (!reconnecting) attemptReconnect();
+            }
+        });
     }
 
     async function createRoomAsHost() {
         const roomCode = Math.random().toString(36).substring(2, 8).toUpperCase();
         activeRoomCode = roomCode;
         isHost = true;
+        manualDisconnect = false;
+        reconnectAttempts = 0;
+        reconnecting = false;
         connectionStatusMsg.innerHTML = `<i class="fas fa-spinner fa-pulse"></i> Creating room ${roomCode} ...`;
-        const peer = new Peer(roomCode, { config: { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] } });
+        const peer = new Peer(roomCode, ICE_CONFIG);
         currentPeer = peer;
         peer.on('open', () => {
             connectionStatusMsg.innerHTML = `✅ Room ready! Code: ${roomCode} <i class="fas fa-link"></i> Share link.`;
@@ -607,9 +736,12 @@
 
     function joinRoomWithCode(code) {
         if (!code || code.length < 4) { connectionStatusMsg.innerHTML = "❌ Valid code needed"; return; }
+        manualDisconnect = false;
+        reconnectAttempts = 0;
+        reconnecting = false;
         connectionStatusMsg.innerHTML = `<i class="fas fa-link"></i> Connecting to ${code}...`;
         const randomId = `user_${Date.now()}_${Math.floor(Math.random()*10000)}`;
-        const peer = new Peer(randomId, { config: { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] } });
+        const peer = new Peer(randomId, ICE_CONFIG);
         currentPeer = peer;
         activeRoomCode = code;
         isHost = false;
@@ -619,9 +751,13 @@
             setupDataChannel(conn);
             switchToChatScreen(code, false);
             appendSystemMessage(`Connecting to room ${code}...`);
-            conn.on('error', (e) => resetToConnectionView(`Join failed: ${e.message || "room not found"}`));
+            conn.on('error', (e) => {
+                if (!manualDisconnect && !reconnecting) attemptReconnect();
+            });
         });
-        peer.on('error', (err) => resetToConnectionView(`Join error: ${err.message}`));
+        peer.on('error', (err) => {
+            if (!manualDisconnect) connectionStatusMsg.innerHTML = `Join error: ${err.message}`;
+        });
     }
 
     function switchToChatScreen(roomCode, waiting) {
@@ -640,6 +776,9 @@
     }
 
     function resetToConnectionView(errorMsg = null) {
+        manualDisconnect = true;
+        reconnecting = false;
+        stopHeartbeat();
         if (dataConnection) { try { dataConnection.close(); } catch(e) {} dataConnection = null; }
         if (currentPeer) { try { currentPeer.destroy(); } catch(e) {} currentPeer = null; }
         isConnected = false;
@@ -649,6 +788,8 @@
         else connectionStatusMsg.innerHTML = "";
         chatMessagesContainer.innerHTML = '<div style="text-align: center; padding: 1.5rem;"><i class="fas fa-comment-dots"></i> No messages yet</div>';
         typingIndicatorArea.innerHTML = "";
+        reconnectAttempts = 0;
+        manualDisconnect = false;
     }
 
     createBtn.addEventListener('click', createRoomAsHost);
@@ -656,7 +797,7 @@
     disconnectBtn.addEventListener('click', () => resetToConnectionView("You left the room."));
     sendBtn.addEventListener('click', () => { const txt = messageInput.value.trim(); if (txt) { sendChatMessage(txt); messageInput.value = ''; isTyping = false; sendTyping(false); clearTimeout(typingTimeout); typingIndicatorArea.innerHTML = ""; } });
     messageInput.addEventListener('input', (e) => {
-        if (!dataConnection?.open) return;
+        if (!dataConnection?.open || !isConnected) return;
         const nowTyping = e.target.value.length > 0;
         if (nowTyping !== isTyping) {
             isTyping = nowTyping;
