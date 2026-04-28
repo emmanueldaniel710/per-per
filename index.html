@@ -1,0 +1,679 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes, viewport-fit=cover">
+    <title>Connectly · Private P2P Chat + Images</title>
+    <!-- Google Fonts & Font Awesome -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <!-- PeerJS -->
+    <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        /* Light / Dark mode variables */
+        :root {
+            --bg-gradient-start: #0a0f1e;
+            --bg-gradient-end: #03060c;
+            --card-bg: rgba(18, 25, 40, 0.75);
+            --card-border: rgba(72, 187, 255, 0.2);
+            --text-primary: #f0f3fa;
+            --text-secondary: #9bb5d4;
+            --input-bg: rgba(12, 20, 30, 0.8);
+            --input-border: #2c3f55;
+            --btn-primary: linear-gradient(105deg, #2b6ef0, #1a4fcf);
+            --btn-primary-hover: linear-gradient(105deg, #3a7af5, #2660df);
+            --btn-secondary-bg: rgba(30, 40, 60, 0.8);
+            --btn-secondary-border: rgba(80, 160, 255, 0.4);
+            --message-bg-me: #1e4b7c;
+            --message-bg-other: #1e2a3a;
+            --profile-bg: rgba(0, 0, 0, 0.35);
+            --scrollbar-track: #121e2c;
+            --scrollbar-thumb: #2f6bb0;
+            --status-online: #1f8b4c;
+            --accent-glow: rgba(0, 120, 255, 0.3);
+        }
+
+        body.light {
+            --bg-gradient-start: #eef2f9;
+            --bg-gradient-end: #d4deec;
+            --card-bg: rgba(245, 248, 255, 0.85);
+            --card-border: rgba(0, 100, 200, 0.2);
+            --text-primary: #111827;
+            --text-secondary: #2c3e66;
+            --input-bg: white;
+            --input-border: #cbd5e1;
+            --btn-primary: linear-gradient(105deg, #1f5fd9, #0e3faa);
+            --btn-primary-hover: linear-gradient(105deg, #2f6fef, #1a4fcf);
+            --btn-secondary-bg: #e2e8f0;
+            --btn-secondary-border: #94a3b8;
+            --message-bg-me: #d0e6ff;
+            --message-bg-other: #ffffff;
+            --profile-bg: rgba(0, 0, 0, 0.05);
+            --scrollbar-track: #cbd5e1;
+            --scrollbar-thumb: #64748b;
+            --status-online: #10b981;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: radial-gradient(circle at 20% 30%, var(--bg-gradient-start), var(--bg-gradient-end));
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0.8rem;
+            transition: background 0.2s, color 0.2s;
+            color: var(--text-primary);
+        }
+
+        .glass-card {
+            background: var(--card-bg);
+            backdrop-filter: blur(14px);
+            border-radius: 2rem;
+            border: 1px solid var(--card-border);
+            box-shadow: 0 25px 45px -12px rgba(0, 0, 0, 0.4);
+            transition: background 0.2s;
+        }
+
+        .app-container {
+            max-width: 1300px;
+            width: 100%;
+            min-height: 600px;
+        }
+
+        .panel {
+            transition: opacity 0.25s ease;
+        }
+
+        .hidden-panel {
+            display: none;
+        }
+
+        /* Buttons & inputs */
+        .btn-primary {
+            background: var(--btn-primary);
+            border: none;
+            padding: 0.8rem 1.2rem;
+            border-radius: 2.5rem;
+            font-weight: 600;
+            color: white;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            box-shadow: 0 4px 12px rgba(0, 100, 255, 0.2);
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            justify-content: center;
+        }
+        .btn-primary:hover { transform: translateY(-2px); background: var(--btn-primary-hover); }
+        .btn-secondary {
+            background: var(--btn-secondary-bg);
+            border: 1px solid var(--btn-secondary-border);
+            padding: 0.6rem 1rem;
+            border-radius: 2rem;
+            color: var(--text-primary);
+            font-weight: 500;
+            cursor: pointer;
+            transition: 0.2s;
+            font-size: 0.85rem;
+        }
+        .input-field {
+            background: var(--input-bg);
+            border: 1px solid var(--input-border);
+            border-radius: 2rem;
+            padding: 0.7rem 1rem;
+            color: var(--text-primary);
+            font-size: 0.9rem;
+            outline: none;
+            transition: 0.2s;
+            width: 100%;
+        }
+        .input-field:focus { border-color: #2f7ef5; box-shadow: 0 0 0 2px rgba(47, 126, 245, 0.3); }
+
+        .chat-messages {
+            height: 320px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 0.7rem;
+            padding: 0.2rem 0.4rem;
+        }
+        .message-bubble {
+            max-width: 85%;
+            padding: 0.5rem 0.9rem;
+            border-radius: 1.3rem;
+            word-break: break-word;
+            font-size: 0.85rem;
+            line-height: 1.4;
+        }
+        .message-bubble.other { background: var(--message-bg-other); align-self: flex-start; border-bottom-left-radius: 0.3rem; }
+        .message-bubble.me { background: var(--message-bg-me); align-self: flex-end; border-bottom-right-radius: 0.3rem; }
+        .message-sender {
+            font-size: 0.65rem;
+            font-weight: 600;
+            margin-bottom: 3px;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        .message-image {
+            max-width: 200px;
+            max-height: 180px;
+            border-radius: 0.8rem;
+            margin-top: 4px;
+            cursor: pointer;
+        }
+        .profile-name-card {
+            background: var(--profile-bg);
+            border-radius: 1.2rem;
+            padding: 0.6rem 1rem;
+            border: 1px solid var(--card-border);
+        }
+        .avatar-placeholder {
+            width: 42px;
+            height: 42px;
+            border-radius: 42px;
+            background: #2f6bb0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 1.2rem;
+            color: white;
+            flex-shrink: 0;
+        }
+        .typing-indicator { font-size: 0.7rem; color: #80b7ff; min-height: 22px; font-style: italic; }
+        .code-copy { background: rgba(0,0,0,0.3); padding: 0.2rem 0.7rem; border-radius: 2rem; font-family: monospace; cursor: pointer; font-size: 0.8rem; display: inline-flex; align-items: center; gap: 5px; }
+        .theme-toggle {
+            position: fixed;
+            top: 16px;
+            right: 16px;
+            background: var(--card-bg);
+            backdrop-filter: blur(10px);
+            border-radius: 40px;
+            padding: 0.4rem 0.8rem;
+            cursor: pointer;
+            z-index: 100;
+            border: 1px solid var(--card-border);
+            font-size: 0.9rem;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-weight: 500;
+        }
+        .chat-footer { display: flex; gap: 0.5rem; margin-top: 0.8rem; align-items: center; flex-wrap: wrap; }
+        .chat-footer .input-field { flex: 1; min-width: 120px; }
+        
+        /* Responsive adjustments */
+        @media (max-width: 700px) {
+            body { padding: 0.5rem; }
+            .app-container { padding: 1rem !important; }
+            .profile-name-card { padding: 0.5rem; }
+            .btn-primary { padding: 0.6rem 1rem; font-size: 0.8rem; }
+            .message-image { max-width: 150px; max-height: 140px; }
+            .chat-messages { height: 280px; }
+            .theme-toggle { top: 10px; right: 10px; padding: 0.3rem 0.7rem; font-size: 0.8rem; }
+        }
+        @media (max-width: 550px) {
+            .profile-name-card .avatar-placeholder { width: 36px; height: 36px; font-size: 1rem; }
+            .profile-name-card { flex-direction: column; align-items: stretch !important; }
+            .profile-name-card > div:first-child { justify-content: space-between; }
+            .chat-header-profiles { flex-direction: column; align-items: stretch; }
+            .room-info { text-align: left; margin-top: 0.5rem; }
+            .chat-footer button { padding: 0.5rem 0.8rem; }
+            .message-bubble { max-width: 95%; }
+        }
+        @media (max-width: 450px) {
+            .actions-grid .action-card { min-width: 100%; }
+            .join-group { flex-direction: column; }
+            .join-group .btn-secondary { width: 100%; }
+            .chat-footer { flex-wrap: wrap; }
+            .chat-footer .input-field { min-width: 100%; order: -1; margin-bottom: 0.3rem; }
+        }
+        .color-picker-clean {
+            width: 36px;
+            height: 36px;
+            border: none !important;
+            outline: none !important;
+            background: transparent;
+            cursor: pointer;
+            padding: 0;
+            border-radius: 50%;
+            box-shadow: none;
+        }
+        .color-picker-clean::-webkit-color-swatch-wrapper {
+            padding: 0;
+        }
+        .color-picker-clean::-webkit-color-swatch {
+            border: none;
+            border-radius: 50%;
+        }
+        ::-webkit-scrollbar { width: 4px; }
+        ::-webkit-scrollbar-track { background: var(--scrollbar-track); border-radius: 10px; }
+        ::-webkit-scrollbar-thumb { background: var(--scrollbar-thumb); border-radius: 10px; }
+    </style>
+</head>
+<body>
+<div class="theme-toggle" id="themeToggleBtn">
+    <i class="fas fa-moon"></i> <span id="themeText">Dark</span>
+</div>
+
+<div class="app-container glass-card" style="padding: 1.2rem;">
+    <!-- CONNECTION SCREEN -->
+    <div id="connectionScreen" class="panel">
+        <div style="text-align: center; margin-bottom: 1.2rem;">
+            <i class="fas fa-bolt" style="font-size: 1.8rem; color: #4f9eff;"></i>
+            <h1 style="font-size: 1.8rem; font-weight: 700; background: linear-gradient(135deg, #FFFFFF, #8bb9fe); -webkit-background-clip: text; background-clip: text; color: transparent;">Connectly</h1>
+            <p style="color: var(--text-secondary); font-size: 0.85rem;">Private 1-on-1 · No signup · Share images</p>
+        </div>
+
+        <!-- Profile: only name needed, clean accent picker without border -->
+        <div class="profile-name-card" style="margin-bottom: 1.5rem;">
+            <div style="display: flex; align-items: center; gap: 0.8rem; flex-wrap: wrap; justify-content: space-between;">
+                <div style="display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap;">
+                    <div id="globalNamePreview" class="avatar-placeholder" style="background: #2a5280;">👤</div>
+                    <div>
+                        <div style="font-size: 0.65rem; opacity: 0.7;">YOUR NAME</div>
+                        <input type="text" id="globalDisplayName" placeholder="Your name" maxlength="25" class="input-field" style="width: 140px; padding: 0.4rem 0.8rem;">
+                    </div>
+                </div>
+                <div style="display: flex; align-items: center; gap: 6px;">
+                    <span style="font-size: 0.7rem;">Accent</span>
+                    <input type="color" id="globalAccentColor" value="#2a5280" class="color-picker-clean">
+                </div>
+            </div>
+        </div>
+
+        <div style="display: flex; flex-wrap: wrap; gap: 1rem; justify-content: center;">
+            <div style="flex: 1; min-width: 200px;">
+                <div class="btn-primary" id="createRoomBtn" style="width: 100%;"><i class="fas fa-plus-circle"></i> Create New Room</div>
+                <p style="font-size: 0.65rem; margin-top: 0.4rem; text-align: center;"><i class="fas fa-hashtag"></i> Generates unique code</p>
+            </div>
+            <div style="flex: 1; min-width: 230px;">
+                <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                    <input type="text" id="roomCodeInput" class="input-field" placeholder="Enter room code" style="flex: 1;">
+                    <button id="joinRoomBtn" class="btn-secondary"><i class="fas fa-door-open"></i> Join</button>
+                </div>
+            </div>
+        </div>
+        <div id="connectionStatusMsg" style="text-align: center; font-size: 0.8rem; margin-top: 1rem; min-height: 36px;"></div>
+    </div>
+
+    <!-- CHAT SCREEN -->
+    <div id="chatScreen" class="panel hidden-panel">
+        <div style="display: flex; flex-direction: column; gap: 1rem;">
+            <!-- top bar: profiles + room info -->
+            <div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 0.8rem;">
+                <div style="display: flex; gap: 0.8rem; flex-wrap: wrap;">
+                    <div class="profile-name-card" style="display: flex; gap: 0.6rem; align-items: center;">
+                        <div id="localAvatarBadge" class="avatar-placeholder" style="width: 38px; height: 38px; font-size: 1rem;">👤</div>
+                        <div>
+                            <div style="font-size: 0.65rem;">You</div>
+                            <div id="chatLocalName" style="font-weight: 600; font-size: 0.9rem;">—</div>
+                            <button id="editNameBtn" class="btn-secondary" style="padding: 0.15rem 0.5rem; font-size: 0.65rem;"><i class="fas fa-pen"></i></button>
+                        </div>
+                    </div>
+                    <div class="profile-name-card" style="display: flex; gap: 0.6rem; align-items: center;">
+                        <div id="remoteAvatarBadge" class="avatar-placeholder" style="width: 38px; height: 38px; background: #4c5f82;">?</div>
+                        <div>
+                            <div style="font-size: 0.65rem;">Partner</div>
+                            <div id="remoteNameDisplay" style="font-weight: 600; font-size: 0.9rem;">Waiting...</div>
+                            <span id="remoteStatusIcon" style="font-size: 0.65rem;"><i class="fas fa-spinner fa-pulse"></i> connecting</span>
+                        </div>
+                    </div>
+                </div>
+                <div style="text-align: right;">
+                    <div class="code-copy" id="roomCodeDisplayBox" title="Copy code"><i class="fas fa-hashtag"></i> <span id="activeRoomCodeSpan">------</span> <i class="far fa-copy"></i></div>
+                    <button id="disconnectBtn" class="btn-secondary" style="margin-top: 5px;"><i class="fas fa-sign-out-alt"></i> Leave</button>
+                </div>
+            </div>
+
+            <!-- chat messages area -->
+            <div class="glass-card" style="padding: 0.8rem; background: var(--profile-bg);">
+                <div id="chatMessagesContainer" class="chat-messages">
+                    <div style="text-align: center; color: var(--text-secondary); padding: 1.5rem; font-size: 0.85rem;"><i class="fas fa-comment-dots"></i> No messages yet</div>
+                </div>
+
+                <!-- Input + image button + send -->
+                <div class="chat-footer">
+                    <button id="imageUploadBtn" class="btn-secondary" style="border-radius: 2rem; padding: 0.6rem 0.9rem;" title="Send Image"><i class="fas fa-image"></i></button>
+                    <input type="text" id="messageInput" class="input-field" placeholder="Type a message...">
+                    <button id="sendMessageBtn" class="btn-primary" style="padding: 0.6rem 1rem;"><i class="fas fa-paper-plane"></i></button>
+                </div>
+                <div id="typingIndicatorArea" class="typing-indicator"></div>
+                <input type="file" id="hiddenImageInput" accept="image/jpeg, image/png, image/gif, image/webp" style="display: none;">
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // ---------- GLOBALS ----------
+    let currentPeer = null, dataConnection = null;
+    let isHost = false, activeRoomCode = null, isConnected = false;
+    let remoteProfile = { name: "Stranger", color: "#4c5f82", initial: "?" };
+    let myProfile = { name: "", color: "#2a5280", initial: "?" };
+    let typingTimeout = null, isTyping = false;
+    
+    // DOM elements
+    const connectionScreen = document.getElementById('connectionScreen');
+    const chatScreen = document.getElementById('chatScreen');
+    const createBtn = document.getElementById('createRoomBtn');
+    const joinBtn = document.getElementById('joinRoomBtn');
+    const roomCodeInput = document.getElementById('roomCodeInput');
+    const connectionStatusMsg = document.getElementById('connectionStatusMsg');
+    const globalDisplayName = document.getElementById('globalDisplayName');
+    const globalAccentColor = document.getElementById('globalAccentColor');
+    const globalNamePreview = document.getElementById('globalNamePreview');
+    const chatLocalName = document.getElementById('chatLocalName');
+    const localAvatarBadge = document.getElementById('localAvatarBadge');
+    const remoteNameDisplay = document.getElementById('remoteNameDisplay');
+    const remoteAvatarBadge = document.getElementById('remoteAvatarBadge');
+    const remoteStatusIcon = document.getElementById('remoteStatusIcon');
+    const roomCodeDisplaySpan = document.getElementById('activeRoomCodeSpan');
+    const disconnectBtn = document.getElementById('disconnectBtn');
+    const messageInput = document.getElementById('messageInput');
+    const sendBtn = document.getElementById('sendMessageBtn');
+    const chatMessagesContainer = document.getElementById('chatMessagesContainer');
+    const typingIndicatorArea = document.getElementById('typingIndicatorArea');
+    const editNameBtn = document.getElementById('editNameBtn');
+    const imageUploadBtn = document.getElementById('imageUploadBtn');
+    const hiddenImageInput = document.getElementById('hiddenImageInput');
+    const themeToggleBtn = document.getElementById('themeToggleBtn');
+    const themeTextSpan = document.getElementById('themeText');
+
+    // Theme handling
+    function setTheme(theme) {
+        if (theme === 'light') document.body.classList.add('light');
+        else document.body.classList.remove('light');
+        localStorage.setItem('connectly_theme', theme);
+        themeTextSpan.innerText = theme === 'light' ? 'Light' : 'Dark';
+        const icon = themeToggleBtn.querySelector('i');
+        if (theme === 'light') icon.className = 'fas fa-sun';
+        else icon.className = 'fas fa-moon';
+    }
+    function toggleTheme() {
+        const isLight = document.body.classList.contains('light');
+        setTheme(isLight ? 'dark' : 'light');
+    }
+    const savedTheme = localStorage.getItem('connectly_theme');
+    if (savedTheme === 'light') setTheme('light');
+    else setTheme('dark');
+    themeToggleBtn.addEventListener('click', toggleTheme);
+
+    // Profile helpers
+    function updateGlobalProfilePreview() {
+        let name = globalDisplayName.value.trim();
+        if (name === "") name = "Anonymous";
+        const color = globalAccentColor.value;
+        myProfile.name = name;
+        myProfile.color = color;
+        myProfile.initial = name.charAt(0).toUpperCase();
+        globalNamePreview.textContent = myProfile.initial;
+        globalNamePreview.style.background = color;
+        if (!chatScreen.classList.contains('hidden-panel')) {
+            localAvatarBadge.textContent = myProfile.initial;
+            localAvatarBadge.style.background = myProfile.color;
+            chatLocalName.textContent = myProfile.name;
+        }
+        localStorage.setItem('connectly_profile_name', myProfile.name);
+        localStorage.setItem('connectly_profile_color', myProfile.color);
+        if (dataConnection && dataConnection.open) sendProfileToPeer();
+    }
+
+    function loadStoredProfile() {
+        const savedName = localStorage.getItem('connectly_profile_name');
+        const savedColor = localStorage.getItem('connectly_profile_color');
+        if (savedName) globalDisplayName.value = savedName;
+        if (savedColor) globalAccentColor.value = savedColor;
+        updateGlobalProfilePreview();
+        globalDisplayName.addEventListener('input', updateGlobalProfilePreview);
+        globalAccentColor.addEventListener('input', updateGlobalProfilePreview);
+    }
+
+    function sendProfileToPeer() {
+        if (dataConnection && dataConnection.open) {
+            dataConnection.send(JSON.stringify({
+                type: 'profile',
+                data: { name: myProfile.name, color: myProfile.color, initial: myProfile.initial }
+            }));
+        }
+    }
+
+    function updateRemoteProfile(profile) {
+        remoteProfile = profile;
+        remoteNameDisplay.textContent = profile.name || "Partner";
+        remoteAvatarBadge.textContent = profile.initial || "?";
+        remoteAvatarBadge.style.background = profile.color || "#4c5f82";
+        remoteStatusIcon.innerHTML = '<i class="fas fa-check-circle"></i> Connected';
+    }
+
+    function appendMessageToUI(senderName, content, isMe, isImage = false, imageUrl = null, colorHint = null) {
+        const msgDiv = document.createElement('div');
+        msgDiv.className = `message-bubble ${isMe ? 'me' : 'other'}`;
+        const senderDiv = document.createElement('div');
+        senderDiv.className = 'message-sender';
+        const color = colorHint || (isMe ? myProfile.color : remoteProfile.color);
+        senderDiv.innerHTML = `<span style="display:inline-block;width:14px;height:14px;border-radius:50%;background:${color};"></span> ${senderName}`;
+        msgDiv.appendChild(senderDiv);
+        if (isImage && imageUrl) {
+            const img = document.createElement('img');
+            img.src = imageUrl;
+            img.className = 'message-image';
+            img.loading = 'lazy';
+            img.onclick = () => window.open(imageUrl, '_blank');
+            msgDiv.appendChild(img);
+        } else {
+            const textSpan = document.createElement('div');
+            textSpan.textContent = content;
+            msgDiv.appendChild(textSpan);
+        }
+        chatMessagesContainer.appendChild(msgDiv);
+        chatMessagesContainer.scrollTop = chatMessagesContainer.scrollHeight;
+        if (chatMessagesContainer.children.length === 1 && chatMessagesContainer.children[0].innerText.includes("No messages yet")) {
+            chatMessagesContainer.innerHTML = '';
+            chatMessagesContainer.appendChild(msgDiv);
+        }
+    }
+
+    function appendSystemMessage(text, isError = false) {
+        const sysDiv = document.createElement('div');
+        sysDiv.style.textAlign = 'center';
+        sysDiv.style.fontSize = '0.7rem';
+        sysDiv.style.color = isError ? '#ffa098' : '#8bb3d4';
+        sysDiv.style.padding = '4px';
+        sysDiv.innerHTML = `<i class="fas fa-info-circle"></i> ${text}`;
+        chatMessagesContainer.appendChild(sysDiv);
+        chatMessagesContainer.scrollTop = chatMessagesContainer.scrollHeight;
+        if (chatMessagesContainer.children.length === 1 && chatMessagesContainer.children[0].innerText.includes("No messages yet")) {
+            chatMessagesContainer.innerHTML = '';
+            chatMessagesContainer.appendChild(sysDiv);
+        }
+    }
+
+    function compressAndSendImage(file) {
+        if (!file.type.startsWith('image/')) {
+            appendSystemMessage("Only images allowed (JPEG, PNG, GIF, WEBP)", true);
+            return;
+        }
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            const img = new Image();
+            img.onload = () => {
+                const maxWidth = 800;
+                let width = img.width;
+                let height = img.height;
+                if (width > maxWidth) {
+                    height = (height * maxWidth) / width;
+                    width = maxWidth;
+                }
+                const canvas = document.createElement('canvas');
+                canvas.width = width;
+                canvas.height = height;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(img, 0, 0, width, height);
+                const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.7);
+                if (dataConnection && dataConnection.open) {
+                    dataConnection.send(JSON.stringify({
+                        type: 'image',
+                        data: { url: compressedDataUrl, name: myProfile.name, color: myProfile.color }
+                    }));
+                    appendMessageToUI(myProfile.name, null, true, true, compressedDataUrl, myProfile.color);
+                } else {
+                    appendSystemMessage("Not connected. Can't send image.", true);
+                }
+            };
+            img.src = e.target.result;
+        };
+        reader.readAsDataURL(file);
+    }
+
+    imageUploadBtn.addEventListener('click', () => hiddenImageInput.click());
+    hiddenImageInput.addEventListener('change', (e) => {
+        if (e.target.files && e.target.files[0]) compressAndSendImage(e.target.files[0]);
+        hiddenImageInput.value = '';
+    });
+
+    function sendChatMessage(text) {
+        if (!dataConnection || !dataConnection.open) { appendSystemMessage("Not connected", true); return; }
+        const msgObj = { type: 'chat', data: { text: text, name: myProfile.name, color: myProfile.color, timestamp: Date.now() } };
+        dataConnection.send(JSON.stringify(msgObj));
+        appendMessageToUI(myProfile.name, text, true, false, null, myProfile.color);
+    }
+
+    function sendTyping(flag) {
+        if (dataConnection?.open) dataConnection.send(JSON.stringify({ type: 'typing', data: { isTyping: flag } }));
+    }
+
+    function setupDataChannel(conn) {
+        dataConnection = conn;
+        conn.on('open', () => {
+            isConnected = true;
+            appendSystemMessage("🔒 Secure channel open! You can send images.");
+            remoteStatusIcon.innerHTML = '<i class="fas fa-check-circle"></i> Connected';
+            sendProfileToPeer();
+        });
+        conn.on('data', (raw) => {
+            try {
+                const msg = JSON.parse(raw);
+                if (msg.type === 'chat') {
+                    appendMessageToUI(msg.data.name, msg.data.text, false, false, null, msg.data.color);
+                } else if (msg.type === 'profile') {
+                    updateRemoteProfile(msg.data);
+                } else if (msg.type === 'typing') {
+                    if (msg.data.isTyping) {
+                        typingIndicatorArea.innerHTML = `<i class="fas fa-ellipsis-h"></i> ${remoteProfile.name} is typing...`;
+                        clearTimeout(typingTimeout);
+                        typingTimeout = setTimeout(() => { typingIndicatorArea.innerHTML = ''; }, 1500);
+                    } else typingIndicatorArea.innerHTML = '';
+                } else if (msg.type === 'image') {
+                    appendMessageToUI(msg.data.name, null, false, true, msg.data.url, msg.data.color);
+                }
+            } catch(e) { console.warn(e); }
+        });
+        conn.on('close', () => resetToConnectionView("Partner disconnected."));
+        conn.on('error', () => resetToConnectionView("Connection lost."));
+    }
+
+    async function createRoomAsHost() {
+        const roomCode = Math.random().toString(36).substring(2, 8).toUpperCase();
+        activeRoomCode = roomCode;
+        isHost = true;
+        connectionStatusMsg.innerHTML = `<i class="fas fa-spinner fa-pulse"></i> Creating room ${roomCode} ...`;
+        const peer = new Peer(roomCode, { config: { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] } });
+        currentPeer = peer;
+        peer.on('open', () => {
+            connectionStatusMsg.innerHTML = `✅ Room ready! Code: ${roomCode} <i class="fas fa-link"></i> Share link.`;
+            switchToChatScreen(roomCode, true);
+            appendSystemMessage(`✨ Your room code: ${roomCode}. Share with partner. Waiting...`);
+        });
+        peer.on('connection', (conn) => {
+            if (dataConnection && dataConnection.open) { conn.close(); return; }
+            appendSystemMessage("🔗 Partner connected!");
+            setupDataChannel(conn);
+        });
+        peer.on('error', (err) => {
+            if (err.type === 'unavailable-id') createRoomAsHost();
+            else resetToConnectionView(`Error: ${err.message}`);
+        });
+    }
+
+    function joinRoomWithCode(code) {
+        if (!code || code.length < 4) { connectionStatusMsg.innerHTML = "❌ Valid code needed"; return; }
+        connectionStatusMsg.innerHTML = `<i class="fas fa-link"></i> Connecting to ${code}...`;
+        const randomId = `user_${Date.now()}_${Math.floor(Math.random()*10000)}`;
+        const peer = new Peer(randomId, { config: { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] } });
+        currentPeer = peer;
+        activeRoomCode = code;
+        isHost = false;
+        peer.on('open', () => {
+            const conn = peer.connect(code, { reliable: true });
+            if (!conn) throw new Error("connect fail");
+            setupDataChannel(conn);
+            switchToChatScreen(code, false);
+            appendSystemMessage(`Connecting to room ${code}...`);
+            conn.on('error', (e) => resetToConnectionView(`Join failed: ${e.message || "room not found"}`));
+        });
+        peer.on('error', (err) => resetToConnectionView(`Join error: ${err.message}`));
+    }
+
+    function switchToChatScreen(roomCode, waiting) {
+        connectionScreen.classList.add('hidden-panel');
+        chatScreen.classList.remove('hidden-panel');
+        roomCodeDisplaySpan.textContent = roomCode;
+        document.getElementById('roomCodeDisplayBox').onclick = () => { navigator.clipboard.writeText(roomCode); appendSystemMessage("📋 Room code copied!"); };
+        localAvatarBadge.textContent = myProfile.initial;
+        localAvatarBadge.style.background = myProfile.color;
+        chatLocalName.textContent = myProfile.name;
+        if (waiting) {
+            remoteNameDisplay.textContent = "Waiting...";
+            remoteStatusIcon.innerHTML = '<i class="fas fa-hourglass-half"></i> waiting';
+            remoteAvatarBadge.textContent = "?";
+        }
+    }
+
+    function resetToConnectionView(errorMsg = null) {
+        if (dataConnection) { try { dataConnection.close(); } catch(e) {} dataConnection = null; }
+        if (currentPeer) { try { currentPeer.destroy(); } catch(e) {} currentPeer = null; }
+        isConnected = false;
+        connectionScreen.classList.remove('hidden-panel');
+        chatScreen.classList.add('hidden-panel');
+        if (errorMsg) connectionStatusMsg.innerHTML = errorMsg;
+        else connectionStatusMsg.innerHTML = "";
+        chatMessagesContainer.innerHTML = '<div style="text-align: center; padding: 1.5rem;"><i class="fas fa-comment-dots"></i> No messages yet</div>';
+        typingIndicatorArea.innerHTML = "";
+    }
+
+    createBtn.addEventListener('click', createRoomAsHost);
+    joinBtn.addEventListener('click', () => { const code = roomCodeInput.value.trim().toUpperCase(); if (code) joinRoomWithCode(code); else connectionStatusMsg.innerHTML = "Enter room code"; });
+    disconnectBtn.addEventListener('click', () => resetToConnectionView("You left the room."));
+    sendBtn.addEventListener('click', () => { const txt = messageInput.value.trim(); if (txt) { sendChatMessage(txt); messageInput.value = ''; isTyping = false; sendTyping(false); clearTimeout(typingTimeout); typingIndicatorArea.innerHTML = ""; } });
+    messageInput.addEventListener('input', (e) => {
+        if (!dataConnection?.open) return;
+        const nowTyping = e.target.value.length > 0;
+        if (nowTyping !== isTyping) {
+            isTyping = nowTyping;
+            sendTyping(isTyping);
+            if (isTyping) {
+                clearTimeout(typingTimeout);
+                typingTimeout = setTimeout(() => { if (isTyping) { isTyping = false; sendTyping(false); } }, 1200);
+            }
+        }
+    });
+    messageInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') sendBtn.click(); });
+    editNameBtn.addEventListener('click', () => {
+        let newName = prompt("Enter your name", myProfile.name);
+        if (newName && newName.trim()) globalDisplayName.value = newName.trim().substring(0, 25);
+        updateGlobalProfilePreview();
+    });
+    loadStoredProfile();
+</script>
+</body>
+</html>
